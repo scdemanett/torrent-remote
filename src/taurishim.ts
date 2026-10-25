@@ -49,10 +49,23 @@ export const appWindow = {
     isMinimized: async () => await realAppWindow?.isMinimized() ?? false,
     hide: async () => await realAppWindow?.hide(),
     show: async () => await realAppWindow?.show(),
+    minimize: async () => await realAppWindow?.minimize(),
     unminimize: async () => await realAppWindow?.unminimize(),
     setFocus: async () => await realAppWindow?.setFocus(),
     setTitle: async (title: string) => await realAppWindow?.setTitle(title),
 };
+
+// Whether the main window is hidden in the tray. Kept here for components
+// that mount while it is (e.g. after starting minimized), the window-hidden
+// and window-shown events only reach listeners that already exist.
+let mainWindowHidden = false;
+export const isMainWindowHidden = () => mainWindowHidden;
+void realAppWindow?.listen("window-hidden", () => {
+    mainWindowHidden = true;
+});
+void realAppWindow?.listen("window-shown", () => {
+    mainWindowHidden = false;
+});
 
 export const invoke = TAURI
     ? (await import(/* webpackMode: "lazy-once" */ "@tauri-apps/api/core")).invoke

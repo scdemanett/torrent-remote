@@ -276,29 +276,21 @@ function BigSwitch({ checked, onChange }: { checked: boolean, onChange: (checked
     );
 }
 
-function IntegrationsPanel({ form }: { form: Form }) {
-    const platform = useMemo(() => UAParser().os.name ?? "unknown", []);
+interface IntegrationsPanelProps {
+    form: Form,
+    // undefined until read from the system
+    autostart: boolean | undefined,
+    setAutostart: (state: boolean) => void,
+}
 
-    const [autostart, setAutostart] = useState(false);
+function IntegrationsPanel({ form, autostart, setAutostart }: IntegrationsPanelProps) {
+    const platform = useMemo(() => UAParser().os.name ?? "unknown", []);
 
     const associateTorrent = useCallback(() => {
         void invoke("app_integration", { mode: "torrent" });
     }, []);
     const associateMagnet = useCallback(() => {
         void invoke("app_integration", { mode: "magnet" });
-    }, []);
-
-    useEffect(() => {
-        if (TAURI) {
-            invoke("app_integration", { mode: "getautostart" })
-                .then((result) => { setAutostart(result as boolean); })
-                .catch(console.error);
-        }
-    }, []);
-
-    const onChangeAutostart = useCallback((state: boolean) => {
-        setAutostart(state);
-        void invoke("app_integration", { mode: state ? "autostart" : "noautostart" });
     }, []);
 
     const app = form.watch("app");
@@ -335,13 +327,16 @@ function IntegrationsPanel({ form }: { form: Form }) {
                         onChange={(v) => { form.setValue("app.autoCheckUpdates", v); }}
                     />
                 </div>
-                <div className="col-span-6">Launch on startup</div>
-                <div className="col-span-6">
-                    <BigSwitch
-                        checked={autostart}
-                        onChange={onChangeAutostart}
-                    />
-                </div>
+                {TAURI && <>
+                    <div className="col-span-6">Launch on startup</div>
+                    <div className="col-span-6">
+                        {/* not rendered off first, it would visibly slide on */}
+                        {autostart !== undefined && <BigSwitch
+                            checked={autostart}
+                            onChange={setAutostart}
+                        />}
+                    </div>
+                </>}
                 {platform === "Windows" && <>
                     <div className="col-span-6">Associate application</div>
                     <div className="col-span-6 flex flex-wrap gap-2">
@@ -419,6 +414,21 @@ export function AppSettingsModal(props: AppSettingsModalProps) {
         }
     }, [config, props.opened, reset]);
 
+    // Read here rather than in the integrations tab, which remounts each time
+    // it is selected. Refreshed on every open, it can change outside the app.
+    const [autostart, setAutostartState] = useState<boolean>();
+    useEffect(() => {
+        if (TAURI && props.opened) {
+            invoke<boolean>("app_integration", { mode: "getautostart" })
+                .then(setAutostartState)
+                .catch(console.error);
+        }
+    }, [props.opened]);
+    const setAutostart = useCallback((state: boolean) => {
+        setAutostartState(state);
+        void invoke("app_integration", { mode: state ? "autostart" : "noautostart" });
+    }, []);
+
     const onSave = useCallback(() => {
         void form.trigger().then((valid) => {
             if (!valid) return;
@@ -481,7 +491,7 @@ export function AppSettingsModal(props: AppSettingsModalProps) {
                     </TabsContent>
 
                     <TabsContent value="integrations" className="pt-2">
-                        <IntegrationsPanel form={form} />
+                        <IntegrationsPanel form={form} autostart={autostart} setAutostart={setAutostart} />
                     </TabsContent>
 
                     {TAURI && <TabsContent value="interface" className="flex flex-col pt-2">

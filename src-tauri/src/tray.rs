@@ -117,8 +117,13 @@ pub fn set_tray_state(app: &AppHandle, state: TrayState) {
     }
 }
 
+/// Text of the show/hide menu item, kept for a tray created after it was set
+/// (the window starts hidden before the frontend creates the tray).
+static SHOWHIDE_TEXT: Mutex<&'static str> = Mutex::new("Hide");
+
 pub fn create_tray(app: AppHandle) {
-    let menu = create_menu(&app, "Hide");
+    let showhide_text = *SHOWHIDE_TEXT.lock().unwrap();
+    let menu = create_menu(&app, showhide_text);
 
     // The tray can be created after the frontend has already reported a
     // state (tray icon enabled in settings), so start from that state.
@@ -169,7 +174,8 @@ where
     Menu::with_items(app, &[&hide, &separator, &quit]).unwrap()
 }
 
-pub fn set_tray_showhide_text(app: &AppHandle, text: &str) {
+pub fn set_tray_showhide_text(app: &AppHandle, text: &'static str) {
+    *SHOWHIDE_TEXT.lock().unwrap() = text;
     if let Some(tray) = app.tray_by_id(TRAY_ID) {
         tray.set_menu(Some(create_menu(app, text))).ok();
     }
@@ -207,23 +213,31 @@ pub fn toggle_main_window(app: &AppHandle, window: Option<WebviewWindow>) {
                 close_main(window).await;
             });
         }
-        None => {
-            let window =
-                WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("index.html".into()))
-                    .title("Torrent Remote")
-                    .inner_size(1024., 800.)
-                    .center()
-                    // Created hidden: the window-state plugin restores size,
-                    // position and maximized state on creation, then the
-                    // frontend shows the window once it has painted (see
-                    // RevealWindow in src/index.tsx). Showing it earlier gives
-                    // a blank flash followed by a visible resize on every launch.
-                    .visible(false)
-                    .build()
-                    .unwrap();
-            set_tray_showhide_text(app, "Hide");
-            reveal_fallback(window);
-        }
+        None => create_main_window(app, false),
+    }
+}
+
+/// Creates the main window. With `start_minimized` (autostart) the frontend
+/// still loads, so the tray icon and polling work, but keeps the window hidden.
+pub fn create_main_window(app: &AppHandle, start_minimized: bool) {
+    let window =
+        WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("index.html".into()))
+            .title("Torrent Remote")
+            .inner_size(1024., 800.)
+            .center()
+            // Created hidden: the window-state plugin restores size,
+            // position and maximized state on creation, then the
+            // frontend shows the window once it has painted (see
+            // RevealWindow in src/index.tsx). Showing it earlier gives
+            // a blank flash followed by a visible resize on every launch.
+            .visible(false)
+            .build()
+            .unwrap();
+    if start_minimized {
+        set_tray_showhide_text(app, "Show");
+    } else {
+        set_tray_showhide_text(app, "Hide");
+        reveal_fallback(window);
     }
 }
 

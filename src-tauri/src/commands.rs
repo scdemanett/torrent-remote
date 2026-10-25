@@ -195,6 +195,13 @@ pub async fn app_integration(app: tauri::AppHandle, mode: String) -> bool {
     crate::integrations::app_integration_impl(&app, &mode)
 }
 
+/// Whether the main window should stay hidden because the app was launched
+/// by autostart. True only on the first call.
+#[tauri::command]
+pub fn take_start_minimized(state: tauri::State<crate::StartMinimized>) -> bool {
+    state.0.swap(false, std::sync::atomic::Ordering::Relaxed)
+}
+
 #[tauri::command]
 pub async fn get_file_stats(path: String) -> FileStats {
     if let Ok(metadata) = std::path::PathBuf::from(path.clone()).metadata() {

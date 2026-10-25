@@ -90,11 +90,20 @@ function setupWebEvents(config: Config) {
 
 // The main window is created hidden so that the window-state plugin can
 // restore its size, position and maximized state first (see tray.rs).
-// Reveal it as soon as React has painted something.
-function RevealWindow() {
+// Reveal it as soon as React has painted something, unless the app was
+// launched on startup: then it stays in the tray, or goes to the taskbar
+// when there is no tray icon to open it from.
+function RevealWindow({ startMinimized }: { startMinimized: boolean }) {
+    const config = useContext(ConfigContext);
     useEffect(() => {
-        void appWindow.show().then(async () => await appWindow.setFocus());
-    }, []);
+        if (!startMinimized) {
+            void appWindow.show().then(async () => await appWindow.setFocus());
+        } else if (config.values.app.showTrayIcon) {
+            void appWindow.emit("window-hidden");
+        } else {
+            void appWindow.show().then(async () => await appWindow.minimize());
+        }
+    }, [config, startMinimized]);
     return null;
 }
 
@@ -131,6 +140,7 @@ function Loader() {
 async function run(config: Config) {
     const appnode = document.getElementById("app") as HTMLElement;
     const app = createRoot(appnode);
+    const startMinimized = TAURI && await invoke<boolean>("take_start_minimized").catch(() => false);
 
     if (TAURI) {
         suppressNativeContextMenu();
@@ -146,7 +156,7 @@ async function run(config: Config) {
     app.render(
         <React.StrictMode>
             <ConfigContext.Provider value={config}>
-                {TAURI && <RevealWindow />}
+                {TAURI && <RevealWindow startMinimized={startMinimized} />}
                 <Suspense fallback={<Loader />}>
                     <ThemeProvider>
                         {TAURI && <TauriApp />}

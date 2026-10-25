@@ -26,7 +26,7 @@ import { useTransmissionClient } from "rpc/client";
 import type { Torrent, TorrentBase } from "rpc/torrent";
 import { processTorrent } from "rpc/torrent";
 import type { TorrentMutableFieldsType, TorrentFieldsType, TorrentAllFieldsType } from "rpc/transmission";
-const { TAURI, appWindow } = await import(/* webpackChunkName: "taurishim" */"taurishim");
+const { TAURI, appWindow, isMainWindowHidden } = await import(/* webpackChunkName: "taurishim" */"taurishim");
 
 export const queryClient = new QueryClient();
 
@@ -61,7 +61,7 @@ export function useTorrentList(enabled: boolean, fields: TorrentFieldsType[]) {
     const serverConfig = useContext(ServerConfigContext);
     const client = useTransmissionClient();
 
-    const [minimized, setMinimized] = useState(false);
+    const [minimized, setMinimized] = useState(isMainWindowHidden);
 
     useEffect(() => {
         if (TAURI) {

@@ -20,7 +20,10 @@
     windows_subsystem = "windows"
 )]
 
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::{atomic::AtomicBool, atomic::Ordering, Arc},
+    time::Duration,
+};
 
 use createtorrent::CreationRequestsHandle;
 use geoip::MmdbReaderHandle;
@@ -48,6 +51,14 @@ mod torrentcache;
 mod tray;
 
 struct ArgsHandle(Arc<RwLock<args::StartupArgs>>);
+
+/// Passed by the autostart entry: the app starts in the tray, the main window
+/// stays hidden until it is opened from there.
+pub const START_MINIMIZED_ARG: &str = "--start-minimized";
+
+/// Set when this launch should keep the main window hidden. The frontend
+/// takes it once (take_start_minimized), so a later reload shows the window.
+pub struct StartMinimized(pub AtomicBool);
 
 #[cfg(target_os = "macos")]
 fn handle_uris(app: &AppHandle, uris: Vec<String>) {
@@ -101,6 +112,14 @@ fn log_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     builder.build()
 }
 
+/// Autostart entries launch the app minimized to the tray.
+fn autostart_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    let builder = tauri_plugin_autostart::Builder::new().arg(START_MINIMIZED_ARG);
+    #[cfg(target_os = "macos")]
+    let builder = builder.macos_launcher(tauri_plugin_autostart::MacosLauncher::LaunchAgent);
+    builder.build()
+}
+
 fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     log::info!(
         "{} {} starting",
@@ -109,7 +128,7 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let mut torrents: Vec<String> = vec![];
-    match app.cli().matches() {
+    let start_minimized = match app.cli().matches() {
         Ok(matches) => {
             if matches.args.contains_key("help") {
                 println!("{}", matches.args["help"].value.as_str().unwrap());
@@ -128,18 +147,31 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                     .filter(|a| !notification::is_activation_url(a))
                     .collect();
             }
+            matches
+                .args
+                .get("start-minimized")
+                .is_some_and(|arg| arg.value.as_bool() == Some(true))
         }
         Err(e) => {
             log::error!("Unable to read cli args: {e}");
             app.handle().exit(0);
             return Ok(());
         }
-    }
+    };
 
     let app: AppHandle = app.handle().clone();
 
-    integrations::migrate_legacy_autostart(&app);
+    integrations::migrate_autostart(&app);
     notification::init(&app);
+
+    // torrents on the command line are shown even then
+    let start_minimized = start_minimized && torrents.is_empty();
+    if start_minimized {
+        log::info!("Starting minimized to the tray");
+    }
+    app.state::<StartMinimized>()
+        .0
+        .store(start_minimized, Ordering::Relaxed);
 
     async_runtime::spawn(async move {
         let poller_state: State<PollerHandle> = app.state();
@@ -166,7 +198,7 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                 args_lock.write().await.pause().await;
             });
         });
-        tray::toggle_main_window(&app, None);
+        tray::create_main_window(&app, start_minimized);
 
         torrents.extend(queue.take_pending());
         drop(queue);
@@ -234,6 +266,10 @@ fn main() {
         // so other Tauri apps never collide with it. A second launch exits
         // right away and its arguments arrive here in the running instance.
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            // an autostart launch while the app already runs leaves it as it is
+            if argv.iter().any(|a| a == START_MINIMIZED_ARG) {
+                return;
+            }
             let args: Vec<String> = argv
                 .into_iter()
                 .skip(1)
@@ -261,10 +297,7 @@ fn main() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            None,
-        ))
+        .plugin(autostart_plugin())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -294,8 +327,10 @@ fn main() {
             commands::load_text_file,
             commands::process_torrents,
             commands::lookup_ips,
+            commands::take_start_minimized,
         ])
         .manage(ArgsHandle(Arc::new(RwLock::new(args::StartupArgs::new()))))
+        .manage(StartMinimized(AtomicBool::new(false)))
         .manage(TorrentCacheHandle::default())
         .manage(PollerHandle::default())
         .manage(MmdbReaderHandle::default())

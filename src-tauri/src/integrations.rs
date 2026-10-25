@@ -85,9 +85,12 @@ fn register_magnet_class() -> std::io::Result<()> {
 #[cfg(target_os = "windows")]
 const LEGACY_RUN_KEY: &str = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
 
-/// Earlier versions wrote their own value to the Run key. Move it over to
-/// the plugin's entry once, so the app is not launched twice at logon.
-pub fn migrate_legacy_autostart(app: &AppHandle) {
+/// Brings an existing autostart entry up to date:
+/// - earlier versions wrote their own value to the Run key, move it over to
+///   the plugin's entry once, so the app is not launched twice at logon
+/// - entries written before autostart passed `--start-minimized` open the
+///   window at logon, rewrite them so the app starts in the tray
+pub fn migrate_autostart(app: &AppHandle) {
     #[cfg(target_os = "windows")]
     {
         use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
@@ -95,20 +98,33 @@ pub fn migrate_legacy_autostart(app: &AppHandle) {
         let Ok(key) = hkcu.open_subkey_with_flags(LEGACY_RUN_KEY, KEY_READ | KEY_WRITE) else {
             return;
         };
-        if key.get_value::<String, &str>(APP_NAME).is_err() {
+        if key.get_value::<String, &str>(APP_NAME).is_ok() {
+            log::info!("Moving the legacy autostart entry to tauri-plugin-autostart");
+            if let Err(e) = key.delete_value(APP_NAME) {
+                log::error!("Error removing legacy autostart entry: {e}");
+                return;
+            }
+            set_autostart(app, true);
             return;
         }
-        log::info!("Moving the legacy autostart entry to tauri-plugin-autostart");
-        if let Err(e) = key.delete_value(APP_NAME) {
-            log::error!("Error removing legacy autostart entry: {e}");
-            return;
-        }
-        if let Err(e) = app.autolaunch().enable() {
-            log::error!("Error enabling autostart: {e}");
+        // Only rewrite the Run key when needed, not on every launch.
+        let outdated = key
+            .get_value::<String, &str>(&app.package_info().name)
+            .is_ok_and(|command| !command.contains(crate::START_MINIMIZED_ARG));
+        if outdated && app.autolaunch().is_enabled().unwrap_or(false) {
+            log::info!(
+                "Adding {} to the autostart entry",
+                crate::START_MINIMIZED_ARG
+            );
+            set_autostart(app, true);
         }
     }
+    // The LaunchAgent plist and the .desktop entry are plain files, rewriting
+    // them is cheap and keeps the arguments current.
     #[cfg(not(target_os = "windows"))]
-    let _ = app;
+    if app.autolaunch().is_enabled().unwrap_or(false) {
+        set_autostart(app, true);
+    }
 }
 
 fn set_autostart(app: &AppHandle, enable: bool) -> bool {

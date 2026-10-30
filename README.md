@@ -121,6 +121,12 @@ in `src-tauri/tauri.conf.json`; the private key lives in the gitignored `.tauri/
 and its password in 1Password. GitHub Actions needs the repository secrets
 `TAURI_SIGNING_PRIVATE_KEY` (the key file contents) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
 
+Once the release is published, the `winget` job submits the new version to
+[winget-pkgs](https://github.com/microsoft/winget-pkgs) as a pull request from the
+`scdemanett/winget-pkgs` fork, using the previous version's manifests as the template. It needs
+the repository secret `WINGET_TOKEN`, a classic personal access token with the `public_repo` and
+`workflow` scopes, and is skipped when the secret is missing. Pre-releases are never submitted.
+
 For a local release build, load both into the shell first:
 
 ```powershell

@@ -1,6 +1,10 @@
 # Torrent Remote
-**Remote GUI for Transmission torrent daemon**
+**A Transmission remote client for Windows, macOS and Linux, and a web UI for the Transmission daemon**
 
+[![Latest release](https://img.shields.io/github/v/release/scdemanett/torrent-remote?label=Release)](https://github.com/scdemanett/torrent-remote/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/scdemanett/torrent-remote/total?label=Downloads)](https://github.com/scdemanett/torrent-remote/releases)
+![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Web-blue)
+[![License](https://img.shields.io/github/license/scdemanett/torrent-remote?label=License)](LICENSE.txt)
 ![Lint status](https://img.shields.io/github/actions/workflow/status/scdemanett/torrent-remote/lint.yml?label=Lint&event=push)
 
 <picture>
@@ -8,16 +12,16 @@
   <img src="docs/logo/mark-on-light.svg" alt="Torrent Remote logo" width="160">
 </picture>
 
-`Torrent Remote` is a fork of [TrguiNG](https://github.com/openscopeproject/TrguiNG)
-by qu1ck, itself a rewrite of the [transgui](https://github.com/transmission-remote-gui/transgui)
-project using [tauri](https://tauri.app).
-Frontend is written in typescript with [react.js](https://react.dev/) and
-[shadcn/ui](https://ui.shadcn.com/) components on [Tailwind CSS](https://tailwindcss.com/). Backend for the app is written in
-[rust](https://www.rust-lang.org/).
+Torrent Remote is a desktop and web GUI for remotely controlling the
+[Transmission](https://transmissionbt.com/) BitTorrent daemon. Run it as a native app on
+Windows, macOS or Linux, or let Transmission serve it in place of the built-in web interface
+by pointing `$TRANSMISSION_WEB_HOME` at the Torrent Remote web assets.
 
-You can use this program in 2 ways: as a native Windows/Linux/Mac app and as a web gui
-served by transmission itself by setting `$TRANSMISSION_WEB_HOME` environment variable
-to point to Torrent Remote web assets.
+It is a fork of [TrguiNG](https://github.com/openscopeproject/TrguiNG) by qu1ck, itself a
+[tauri](https://tauri.app) rewrite of [transgui](https://github.com/transmission-remote-gui/transgui)
+(Transmission Remote GUI). The frontend is TypeScript with [react.js](https://react.dev/) and
+[shadcn/ui](https://ui.shadcn.com/) components on [Tailwind CSS](https://tailwindcss.com/);
+the backend is [rust](https://www.rust-lang.org/).
 
 Some differentiating features:
 
@@ -30,6 +34,17 @@ Some differentiating features:
 * Light and dark themes, or follow the system setting
 
 Transmission v2.40 or later is required.
+
+## Coming from TrguiNG or transgui
+
+Torrent Remote is a drop-in replacement for TrguiNG. Your TrguiNG settings file
+(`trguing.json` in your OS config folder) is imported automatically the first time Torrent
+Remote starts, so servers, filters and interface settings carry over. The two modes are the
+same too: a native app, or a web interface served by Transmission. What changed is the
+interface, rebuilt on shadcn/ui and Tailwind CSS, and the ongoing maintenance.
+
+transgui users get the same remote-control feature set with a current UI toolkit, native
+Apple silicon and Windows ARM builds, and signed Windows installers.
 
 ## Screenshots
 
@@ -48,7 +63,7 @@ Transmission v2.40 or later is required.
 
 <img src="docs/screenshots/create-torrent.webp" alt="Create torrent window with file selection, piece size, comment, source, private flag, trackers and web seeds" width="415">
 
-## Downloads
+## Install
 
 Releases are published on the
 [releases page](https://github.com/scdemanett/torrent-remote/releases):
@@ -65,9 +80,6 @@ Maintainers can also run the
 [build workflow](https://github.com/scdemanett/torrent-remote/actions/workflows/build.yml)
 by hand to build the current development version. Open the latest successful run and scroll
 down to the artifacts section.
-
-If you previously used TrguiNG, its settings file (`trguing.json` in your OS config folder)
-is imported automatically the first time Torrent Remote starts.
 
 ## Contributing
 

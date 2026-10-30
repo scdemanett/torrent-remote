@@ -47,11 +47,20 @@
         "depends": [
           "libasound2"
         ],
-        "desktopTemplate": "app.desktop"
+        "desktopTemplate": "app.desktop",
+        "files": {
+          "/usr/share/metainfo/io.github.scdemanett.torrent-remote.metainfo.xml": "io.github.scdemanett.torrent-remote.metainfo.xml",
+          "/usr/share/icons/hicolor/scalable/apps/torrent-remote.svg": "icons/app.svg",
+          "/usr/share/icons/hicolor/512x512/apps/torrent-remote.png": "icons/icon.png"
+        }
       },
       "rpm": {
         "epoch": 0,
-        "files": {},
+        "files": {
+          "/usr/share/metainfo/io.github.scdemanett.torrent-remote.metainfo.xml": "io.github.scdemanett.torrent-remote.metainfo.xml",
+          "/usr/share/icons/hicolor/scalable/apps/torrent-remote.svg": "icons/app.svg",
+          "/usr/share/icons/hicolor/512x512/apps/torrent-remote.png": "icons/icon.png"
+        },
         "release": "1",
         "depends": [
           "alsa-lib"

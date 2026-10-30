@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 Steven Demanett -->
+<component type="desktop-application">
+  <id>io.github.scdemanett.torrent-remote</id>
+  <name>Torrent Remote</name>
+  <summary>Remote control for Transmission</summary>
+  <developer id="io.github.scdemanett">
+    <name>Steven Demanett</name>
+  </developer>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0-or-later</project_license>
+
+  <url type="homepage">https://github.com/scdemanett/torrent-remote</url>
+  <url type="bugtracker">https://github.com/scdemanett/torrent-remote/issues</url>
+  <url type="vcs-browser">https://github.com/scdemanett/torrent-remote</url>
+  <url type="contribute">https://github.com/scdemanett/torrent-remote/blob/main/CONTRIBUTING.md</url>
+
+  <description>
+    <p>
+      Torrent Remote manages a Transmission torrent daemon running on the same
+      machine or on any other host that exposes the Transmission RPC endpoint.
+      It is a fork of TrguiNG.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Multi-tabbed interface for concurrent server connections</li>
+      <li>Torrent creation with fast multi-threaded hashing</li>
+      <li>Powerful torrent filtering options</li>
+      <li>Support for the latest Transmission features: labels, bandwidth groups, sequential download</li>
+      <li>Notifications and a sound when a download completes, and a tray icon</li>
+      <li>Light and dark themes, or follow the system setting</li>
+    </ul>
+    <p>Transmission 2.40 or later is required.</p>
+  </description>
+
+  <launchable type="desktop-id">Torrent Remote.desktop</launchable>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#36d9f3</color>
+    <color type="primary" scheme_preference="dark">#1696aa</color>
+  </branding>
+
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/scdemanett/torrent-remote/v2.2.1/docs/screenshots/main.webp</image>
+      <caption>Main window with the filters, the torrent list and the details panel</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/scdemanett/torrent-remote/v2.2.1/docs/screenshots/create-torrent.webp</image>
+      <caption>Creating a torrent</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/scdemanett/torrent-remote/v2.2.1/docs/screenshots/settings-integrations.webp</image>
+      <caption>Integration settings: notifications, sound, startup and the tray</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/scdemanett/torrent-remote/v2.2.1/docs/screenshots/settings-interface.webp</image>
+      <caption>Interface settings: theme, font, colors and progress bars</caption>
+    </screenshot>
+  </screenshots>
+
+  <content_rating type="oars-1.1"/>
+
+  <requires>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <display_length compare="ge">768</display_length>
+  </requires>
+
+  <releases>
+    <release version="2.2.1" date="2026-10-25">
+      <url type="details">https://github.com/scdemanett/torrent-remote/releases/tag/v2.2.1</url>
+      <description>
+        <p>Starts minimized to the tray when launched on startup.</p>
+      </description>
+    </release>
+    <release version="2.2.0" date="2026-10-20">
+      <url type="details">https://github.com/scdemanett/torrent-remote/releases/tag/v2.2.0</url>
+      <description>
+        <p>Windows notifications show the app logo and open the app when clicked.</p>
+      </description>
+    </release>
+    <release version="2.1.1" date="2026-10-19">
+      <url type="details">https://github.com/scdemanett/torrent-remote/releases/tag/v2.1.1</url>
+      <description>
+        <p>The tracker list in Edit torrent trackers can be resized, and the context menu is trimmed to the edit commands.</p>
+      </description>
+    </release>
+    <release version="2.1.0" date="2026-10-19">
+      <url type="details">https://github.com/scdemanett/torrent-remote/releases/tag/v2.1.0</url>
+      <description>
+        <p>Remembers the torrent list position, shows the real OS and browser version in About, fixes Change layout collapsing the panes and tidies the toolbar spacing.</p>
+      </description>
+    </release>
+    <release version="2.0.1" date="2026-10-18">
+      <url type="details">https://github.com/scdemanett/torrent-remote/releases/tag/v2.0.1</url>
+      <description>
+        <p>Windows builds are code signed.</p>
+      </description>
+    </release>
+    <release version="2.0.0" date="2026-10-18">
+      <url type="details">https://github.com/scdemanett/torrent-remote/releases/tag/v2.0.0</url>
+      <description>
+        <p>First release of Torrent Remote, forked from TrguiNG 1.5.1: daily update checks with an Integrations toggle and a resizable settings dialog that remembers its size.</p>
+      </description>
+    </release>
+  </releases>
+</component>

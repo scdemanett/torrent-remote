@@ -1,9 +1,11 @@
 [Desktop Entry]
-Categories={{{categories}}}
+Categories=Network;FileTransfer;P2P;
 Exec={{{exec}}} %u
 Icon={{{icon}}}
 Name={{{name}}}
 Comment={{{comment}}}
+Keywords=Transmission;Torrent;BitTorrent;
+StartupWMClass=torrent-remote
 Terminal=false
 Type=Application
 MimeType=application/x-bittorrent;x-scheme-handler/magnet;

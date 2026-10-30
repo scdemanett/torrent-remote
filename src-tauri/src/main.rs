@@ -112,6 +112,43 @@ fn log_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     builder.build()
 }
 
+/// The lock is keyed by the app identifier, so other Tauri apps never collide
+/// with it. A second launch exits right away and its arguments arrive in the
+/// running instance. A Flatpak sandbox only lets the app own D-Bus names under
+/// its Flatpak ID, so inside one the lock is keyed by that instead.
+fn single_instance_plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
+    let builder = tauri_plugin_single_instance::Builder::new().callback(|app, argv, _cwd| {
+        // an autostart launch while the app already runs leaves it as it is
+        if argv.iter().any(|a| a == START_MINIMIZED_ARG) {
+            return;
+        }
+        let args: Vec<String> = argv
+            .into_iter()
+            .skip(1)
+            // a notification click only asks for the main window
+            .filter(|a| !a.starts_with('-') && !notification::is_activation_url(a))
+            .collect();
+        if args.is_empty() {
+            match app.get_webview_window("main") {
+                Some(window) if window.is_visible().unwrap_or(false) => {
+                    if window.is_minimized().unwrap_or(false) {
+                        window.unminimize().ok();
+                    }
+                    window.set_focus().ok();
+                }
+                window => tray::toggle_main_window(app, window),
+            }
+        } else {
+            args::deliver_args(app, args);
+        }
+    });
+    let builder = match std::env::var("FLATPAK_ID") {
+        Ok(flatpak_id) if !flatpak_id.is_empty() => builder.dbus_id(flatpak_id),
+        _ => builder,
+    };
+    builder.build()
+}
+
 /// Autostart entries launch the app minimized to the tray.
 fn autostart_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     let builder = tauri_plugin_autostart::Builder::new().arg(START_MINIMIZED_ARG);
@@ -262,34 +299,8 @@ fn main() {
     let context = tauri::generate_context!();
 
     let app_builder = tauri::Builder::default()
-        // must be the first plugin. The lock is keyed by the app identifier,
-        // so other Tauri apps never collide with it. A second launch exits
-        // right away and its arguments arrive here in the running instance.
-        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
-            // an autostart launch while the app already runs leaves it as it is
-            if argv.iter().any(|a| a == START_MINIMIZED_ARG) {
-                return;
-            }
-            let args: Vec<String> = argv
-                .into_iter()
-                .skip(1)
-                // a notification click only asks for the main window
-                .filter(|a| !a.starts_with('-') && !notification::is_activation_url(a))
-                .collect();
-            if args.is_empty() {
-                match app.get_webview_window("main") {
-                    Some(window) if window.is_visible().unwrap_or(false) => {
-                        if window.is_minimized().unwrap_or(false) {
-                            window.unminimize().ok();
-                        }
-                        window.set_focus().ok();
-                    }
-                    window => tray::toggle_main_window(app, window),
-                }
-            } else {
-                args::deliver_args(app, args);
-            }
-        }))
+        // must be the first plugin
+        .plugin(single_instance_plugin())
         .plugin(log_plugin())
         .plugin(tauri_plugin_cli::init())
         .plugin(tauri_plugin_notification::init())

@@ -220,7 +220,7 @@ export default function TauriApp() {
                         </ClientContext.Provider>
                     </ServerConfigContext.Provider>
                     : <div className="flex h-full w-full items-center justify-center">
-                        <div className="flex min-h-[20rem] flex-col gap-2">
+                        <div className="flex flex-col gap-2">
                             {servers.map((s, i) => {
                                 return <Button
                                     key={i}
@@ -230,9 +230,11 @@ export default function TauriApp() {
                                     {s.name}
                                 </Button>;
                             })}
-                            <div className="flex-grow" />
-                            <Button onClick={serverConfigHandlers.open}>
-                                Configure servers
+                            <Button
+                                className={`h-[4.5rem] rounded-lg px-10 text-[1.75rem] ${servers.length > 0 ? "mt-4" : ""}`}
+                                onClick={serverConfigHandlers.open}
+                            >
+                                Configure Servers
                             </Button>
                         </div>
                     </div>}

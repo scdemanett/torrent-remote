@@ -26,13 +26,13 @@ import type { ModalState } from "./common";
 import { SaveCancelModal } from "./common";
 import * as Icon from "react-bootstrap-icons";
 import type { UseFormReturn } from "react-hook-form";
-import { useFieldArray, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { UAParser } from "ua-parser-js";
 import type { InterfaceFormValues } from "./interfacepanel";
 import { InterfaceSettigsPanel } from "./interfacepanel";
 import { RhfCheckbox, RhfPassword, RhfText } from "components/formfields";
 import { Button } from "components/ui/button";
-import { TextareaField } from "components/ui/fields";
+import { TextareaField, TextInput } from "components/ui/fields";
 import { SegmentedControl } from "components/ui/segmented-control";
 import { Switch } from "components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "components/ui/tabs";
@@ -65,7 +65,7 @@ function ServerListPanel({ form, current, setCurrent }: ServerListPanelProps) {
 
     return (
         <div className="flex w-1/4 min-w-[12rem] max-w-[20rem] shrink-0 flex-col gap-2">
-            <div className={clsx("scrollable mb-2", classes.serverListContainer)}>
+            <div className={clsx("scrollable", classes.serverListContainer)}>
                 <div>
                     {servers.map((s, i) => {
                         let isDuplicate = false;
@@ -83,10 +83,9 @@ function ServerListPanel({ form, current, setCurrent }: ServerListPanelProps) {
                     })}
                 </div>
             </div>
-            <div className="flex flex-nowrap justify-between">
+            <div className="grid grid-cols-4 gap-2">
                 <Button
-                    variant="light"
-                    size="icon-md"
+                    className="h-7 w-full px-0 hover:bg-primary/70"
                     title="Add server"
                     onClick={() => {
                         append({
@@ -101,11 +100,10 @@ function ServerListPanel({ form, current, setCurrent }: ServerListPanelProps) {
                         setCurrent(servers.length);
                     }}
                 >
-                    <Icon.PlusSquare size="1.6rem" color="royalblue" />
+                    <Icon.PlusLg className="size-[1.4rem]" stroke="currentColor" strokeWidth={0.6} />
                 </Button>
                 <Button
-                    variant="light"
-                    size="icon-md"
+                    className="h-7 w-full px-0 hover:bg-primary/70"
                     title="Remove server"
                     onClick={() => {
                         if (current < 0) return;
@@ -115,11 +113,10 @@ function ServerListPanel({ form, current, setCurrent }: ServerListPanelProps) {
                         remove(current);
                     }}
                 >
-                    <Icon.DashSquare size="1.6rem" color="royalblue" />
+                    <Icon.DashLg className="size-[1.4rem]" stroke="currentColor" strokeWidth={0.6} />
                 </Button>
                 <Button
-                    variant="light"
-                    size="icon-md"
+                    className="h-7 w-full px-0 hover:bg-primary/70"
                     title="Move up"
                     onClick={() => {
                         if (current > 0) {
@@ -128,11 +125,10 @@ function ServerListPanel({ form, current, setCurrent }: ServerListPanelProps) {
                         }
                     }}
                 >
-                    <Icon.ArrowUpSquare size="1.6rem" color="royalblue" />
+                    <Icon.ArrowUp className="size-[1.4rem]" stroke="currentColor" strokeWidth={0.6} />
                 </Button>
                 <Button
-                    variant="light"
-                    size="icon-md"
+                    className="h-7 w-full px-0 hover:bg-primary/70"
                     title="Move down"
                     onClick={() => {
                         if (current < servers.length - 1) {
@@ -141,7 +137,7 @@ function ServerListPanel({ form, current, setCurrent }: ServerListPanelProps) {
                         }
                     }}
                 >
-                    <Icon.ArrowDownSquare size="1.6rem" color="royalblue" />
+                    <Icon.ArrowDown className="size-[1.4rem]" stroke="currentColor" strokeWidth={0.6} />
                 </Button>
             </div>
         </div>
@@ -175,13 +171,129 @@ function validateServerUrl(value: unknown) {
     return true;
 }
 
+const DEFAULT_RPC_PATH = "/transmission/rpc";
+
+const DEFAULT_RPC_PORT = "9091";
+
+/** The rpc url as edited: the server address with optional port and rpc path overrides */
+interface ServerUrlParts {
+    address: string,
+    // empty means DEFAULT_RPC_PORT
+    port: string,
+    // empty means DEFAULT_RPC_PATH
+    path: string,
+}
+
+function portOverride(port: string): string {
+    return port === DEFAULT_RPC_PORT ? "" : port;
+}
+
+function pathOverride(path: string): string {
+    return path === "/" || path === DEFAULT_RPC_PATH ? "" : path;
+}
+
+/** An address typed without a scheme is taken as http */
+function withScheme(address: string): string {
+    return /^[a-z][a-z0-9+.-]*:\/\//i.test(address) ? address : `http://${address}`;
+}
+
+/** The port written out in an address, if any. URL.port can not be used, it drops 80 and 443. */
+function explicitPort(address: string): string | undefined {
+    return /^[a-z][a-z0-9+.-]*:\/\/[^/]*?:(\d+)(?:\/|$)/i.exec(address)?.[1];
+}
+
+function splitServerUrl(url: string): ServerUrlParts {
+    try {
+        const parsed = new URL(url);
+        // a saved url without a port means the scheme's own port, not the Transmission default
+        const port = parsed.port !== "" ? parsed.port : parsed.protocol === "https:" ? "443" : "80";
+        return {
+            address: `${parsed.protocol}//${parsed.hostname}`,
+            port: portOverride(port),
+            path: pathOverride(parsed.pathname + parsed.search),
+        };
+    } catch {
+        return { address: url, port: "", path: "" };
+    }
+}
+
+function joinServerUrl({ address, port, path }: ServerUrlParts): string {
+    const trimmed = address.trim().replace(/\/+$/, "");
+    if (trimmed === "") return "";
+    const base = withScheme(trimmed);
+    const rpcPort = port.trim() === "" ? DEFAULT_RPC_PORT : port.trim();
+    const rpcPath = path.trim() === "" ? DEFAULT_RPC_PATH : path.trim();
+    return base
+        + (explicitPort(base) !== undefined ? "" : `:${rpcPort}`)
+        + (rpcPath.startsWith("/") ? "" : "/") + rpcPath;
+}
+
+/** Moves a port or path typed or pasted into the address field over to their own fields */
+function liftFromAddress(parts: ServerUrlParts): ServerUrlParts | undefined {
+    const address = withScheme(parts.address.trim());
+    try {
+        const parsed = new URL(address);
+        const hasPath = parsed.pathname !== "/" || parsed.search !== "";
+        const port = explicitPort(address);
+        if (!hasPath && port === undefined) return undefined;
+        return {
+            address: `${parsed.protocol}//${parsed.hostname}`,
+            port: port !== undefined ? portOverride(port) : parts.port,
+            path: hasPath ? pathOverride(parsed.pathname + parsed.search) : parts.path,
+        };
+    } catch {
+        return undefined;
+    }
+}
+
+interface PathMappingPair {
+    from: string,
+    to: string,
+}
+
+function parsePathMappings(text: string): PathMappingPair[] {
+    return text.split("\n").map((line) => {
+        const equalsPos = line.indexOf("=");
+        // A line without "=" yet is a remote path still being typed
+        if (equalsPos < 0) return { from: line, to: "" };
+        return {
+            from: line.substring(0, equalsPos),
+            to: line.substring(equalsPos + 1),
+        };
+    });
+}
+
+function formatPathMappings(mappings: PathMappingPair[]): string {
+    return mappings
+        .filter((m) => m.from !== "" || m.to !== "")
+        .map((m) => `${m.from}=${m.to}`)
+        .join("\n");
+}
+
+function samePathMappings(a: PathMappingPair[], b: PathMappingPair[]): boolean {
+    return a.length === b.length && a.every((m, i) => m.from === b[i].from && m.to === b[i].to);
+}
+
 function ServerPanel(props: ServerPanelProps) {
     const [mappingsString, setMappingsString] = useState("");
     const pathMappings = props.form.watch(`servers.${props.current}.pathMappings`);
 
     useEffect(() => {
-        setMappingsString(pathMappings.map((m) => `${m.from}=${m.to}`).join("\n"));
+        // Keep the text exactly as typed while it still describes the form value,
+        // only rewrite it when the mappings changed from outside (e.g. another server selected)
+        setMappingsString((current) =>
+            samePathMappings(parsePathMappings(current), pathMappings)
+                ? current
+                : formatPathMappings(pathMappings));
     }, [pathMappings]);
+
+    const url = props.form.watch(`servers.${props.current}.connection.url`);
+    const [urlParts, setUrlParts] = useState(() => splitServerUrl(url));
+
+    useEffect(() => {
+        // same as the mappings: keep what was typed, follow changes from outside
+        setUrlParts((current) => joinServerUrl(current) === url ? current : splitServerUrl(url));
+    }, [url]);
 
     return (
         <div className="flex flex-grow flex-col gap-2">
@@ -194,16 +306,61 @@ function ServerPanel(props: ServerPanelProps) {
                 autoCapitalize="off"
             />
 
-            <RhfText
+            <Controller
                 control={props.form.control}
                 name={`servers.${props.current}.connection.url`}
                 rules={{ validate: validateServerUrl }}
-                label="Server rpc url"
-                placeholder="http://1.2.3.4:9091/transmission/rpc"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
+                render={({ field, fieldState }) => {
+                    const update = (parts: ServerUrlParts) => {
+                        setUrlParts(parts);
+                        field.onChange(joinServerUrl(parts));
+                    };
+                    return <>
+                        <div className="flex items-start gap-2">
+                            <TextInput
+                                ref={field.ref}
+                                wrapperClassName="grow"
+                                label="Server address"
+                                placeholder="http://192.168.1.3"
+                                value={urlParts.address}
+                                onChange={(e) => { update({ ...urlParts, address: e.target.value }); }}
+                                onBlur={() => {
+                                    // a complete rpc url typed or pasted here is split into the three fields
+                                    const lifted = liftFromAddress(urlParts);
+                                    if (lifted !== undefined) update(lifted);
+                                    field.onBlur();
+                                }}
+                                error={fieldState.error?.message}
+                                autoComplete="off"
+                                autoCorrect="off"
+                                autoCapitalize="off"
+                                spellCheck="false"
+                            />
+                            <TextInput
+                                wrapperClassName="w-28 shrink-0"
+                                label="Port"
+                                placeholder={DEFAULT_RPC_PORT}
+                                inputMode="numeric"
+                                maxLength={5}
+                                value={urlParts.port}
+                                onChange={(e) => { update({ ...urlParts, port: e.target.value.replace(/\D/g, "") }); }}
+                                onBlur={field.onBlur}
+                                autoComplete="off"
+                            />
+                        </div>
+                        <TextInput
+                            label={`RPC path (leave empty for ${DEFAULT_RPC_PATH})`}
+                            placeholder={DEFAULT_RPC_PATH}
+                            value={urlParts.path}
+                            onChange={(e) => { update({ ...urlParts, path: e.target.value }); }}
+                            onBlur={field.onBlur}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck="false"
+                        />
+                    </>;
+                }}
             />
 
             <RhfCheckbox
@@ -239,14 +396,7 @@ function ServerPanel(props: ServerPanelProps) {
                         className="grow"
                         label={"Path mappings in \"remote=local\" format, one per line"}
                         onChange={(e) => {
-                            const mappings = e.target.value.split("\n")
-                                .map((line) => {
-                                    const equalsPos = line.indexOf("=") + 1;
-                                    return {
-                                        from: line.substring(0, equalsPos - 1),
-                                        to: line.substring(equalsPos),
-                                    };
-                                });
+                            const mappings = parsePathMappings(e.target.value);
                             props.form.setValue(`servers.${props.current}.pathMappings`, mappings);
                             setMappingsString(e.target.value);
                         }}

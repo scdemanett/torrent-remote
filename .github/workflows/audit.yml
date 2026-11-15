@@ -1,0 +1,57 @@
+name: Dependency advisories
+
+# cargo-audit against src-tauri/Cargo.lock: when the lockfile changes, once a
+# week (advisories are published without any change here), and on demand.
+#
+# Separate from the build on purpose. A new advisory in a crate three levels
+# down has to be seen - a failed run, and the email that comes with it - but
+# it must not hold up a release that is otherwise ready.
+#
+# Fails on vulnerabilities. "Unmaintained" and "unsound" notices are printed
+# and do not fail the run. To accept an advisory, list its id in
+# .cargo/audit.toml under [advisories] ignore, with the reason beside it.
+on:
+  push:
+    branches: [main]
+    paths: ["src-tauri/Cargo.lock", ".cargo/audit.toml", ".github/workflows/audit.yml"]
+  pull_request:
+    branches: [main]
+    paths: ["src-tauri/Cargo.lock", ".cargo/audit.toml", ".github/workflows/audit.yml"]
+  schedule:
+    # Mondays 09:17 UTC.
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+
+# A newer push to the same branch or PR replaces the older run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_AUDIT_VERSION: "0.23.0"
+
+jobs:
+  audit:
+    name: cargo audit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      # The tool is compiled once per version and kept; a cached run takes a
+      # few seconds.
+      - name: Cache cargo-audit
+        id: tool
+        uses: actions/cache@v6
+        with:
+          path: ~/.cargo/bin/cargo-audit
+          key: cargo-audit-${{ env.CARGO_AUDIT_VERSION }}-${{ runner.os }}
+
+      - name: Install cargo-audit
+        if: steps.tool.outputs.cache-hit != 'true'
+        run: cargo install cargo-audit --locked --version "$CARGO_AUDIT_VERSION"
+
+      - name: Check Cargo.lock against the RustSec advisory database
+        run: cargo audit --file src-tauri/Cargo.lock

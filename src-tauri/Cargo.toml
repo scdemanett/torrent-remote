@@ -22,7 +22,9 @@ lava_torrent = { git = "https://github.com/openscopeproject/lava_torrent", branc
 # lava_torrent = { path = "../../lava_torrent" }
 tokio = { version = "^1.53", features = ["fs", "macros", "sync", "time"] }
 serde = { version = "^1.0", features = ["derive"] }
-tauri = { version = "2.12.4", features = [ "devtools", "tray-icon"] }
+# no "devtools" feature: release builds must not open the web inspector
+# (F12, Ctrl+Shift+I), debug builds have it regardless
+tauri = { version = "2.12.4", features = ["tray-icon"] }
 rodio = { version = "^0.23", features = ["playback", "mp3"], default-features = false }
 maxminddb = "^0.32"
 font-loader = "0.11.0"

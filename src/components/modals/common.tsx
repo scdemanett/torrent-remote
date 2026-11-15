@@ -157,10 +157,22 @@ export function SaveCancelModal({ onSave, onClose, children, saveLoading, ...oth
             </div>
             <Separator className="my-1.5" />
             <div className="flex justify-center gap-2">
-                <Button onClick={onSave} data-autofocus>
+                <Button
+                    onClick={onSave}
+                    size="lg"
+                    className="text-base"
+                    data-autofocus
+                >
                     {saveLoading === true ? <Loader size="1rem" color="currentColor" /> : "Save"}
                 </Button>
-                <Button onClick={onClose} variant="light">Cancel</Button>
+                <Button
+                    onClick={onClose}
+                    variant="light"
+                    size="lg"
+                    className="text-base"
+                >
+                    Cancel
+                </Button>
             </div>
         </HkModal>
     );

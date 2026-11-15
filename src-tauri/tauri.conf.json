@@ -15,7 +15,10 @@
       "digestAlgorithm": "sha256",
       "timestampUrl": "",
       "nsis": {
-        "template": "installer.nsi"
+        "template": "installer.nsi",
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "sidebarImage": "nsis/installer-sidebar.bmp"
       }
     },
     "publisher": "Steven Demanett",

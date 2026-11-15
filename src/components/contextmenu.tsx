@@ -17,8 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useCallback, useContext, useState } from "react";
+import React, { useCallback, useContext, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import type { DraggableProvided } from "@hello-pangea/dnd";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
     DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger,
@@ -98,6 +99,44 @@ export function ContextMenu({
                 </KeepOpenContext.Provider>
             </DropdownMenuContent>
         </DropdownMenu>
+    );
+}
+
+/**
+ * Row of a drag-to-reorder list inside a menu. Radix places the menu with a
+ * transform, which makes the menu the containing block of the position: fixed
+ * style the dnd library gives the dragged row. Left alone, the row is drawn
+ * away from the pointer by the menu's own offset in the window, so that offset
+ * is taken back out here.
+ */
+export function MenuDraggableRow({ provided, className, children, ...props }: Omit<React.ComponentProps<"div">, "ref" | "style"> & {
+    provided: DraggableProvided,
+}) {
+    const ref = useRef<HTMLDivElement | null>(null);
+    const { innerRef } = provided;
+    const setRef = useCallback((el: HTMLDivElement | null) => {
+        ref.current = el;
+        innerRef(el);
+    }, [innerRef]);
+
+    let style = provided.draggableProps.style;
+    if (style !== undefined && "position" in style && style.position === "fixed") {
+        const menu = ref.current?.closest("[data-radix-popper-content-wrapper]")?.getBoundingClientRect();
+        if (menu !== undefined) {
+            style = { ...style, left: style.left - menu.left, top: style.top - menu.top };
+        }
+    }
+
+    return (
+        <div
+            {...props}
+            ref={setRef}
+            {...provided.draggableProps}
+            style={style}
+            className={cn("flex flex-nowrap items-center gap-2", className)}
+        >
+            {children}
+        </div>
     );
 }
 

@@ -32,7 +32,7 @@ import {
 } from "@tanstack/react-table";
 import type { Virtualizer } from "@tanstack/react-virtual";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ContextMenu, MenuItem, MenuSpacer, useContextMenu } from "components/contextmenu";
+import { ContextMenu, MenuDraggableRow, MenuItem, MenuSpacer, useContextMenu } from "components/contextmenu";
 import { Button } from "components/ui/button";
 import { Input } from "components/ui/input";
 import type { TableName, TablePosition } from "config";
@@ -468,11 +468,7 @@ function HeaderRow<TData extends RowData>(
                                     return (
                                         <Draggable draggableId={column.id} index={index} key={column.id}>
                                             {(provided) => (
-                                                <div
-                                                    ref={provided.innerRef}
-                                                    {...provided.draggableProps}
-                                                    className="flex flex-nowrap items-center gap-2"
-                                                >
+                                                <MenuDraggableRow provided={provided}>
                                                     <MenuItem
                                                         className="flex-grow"
                                                         leftSection={column.id === "name"
@@ -489,7 +485,7 @@ function HeaderRow<TData extends RowData>(
                                                     <div {...provided.dragHandleProps} className="pr-1 text-muted-foreground">
                                                         <Icon.GripVertical size="12" />
                                                     </div>
-                                                </div>
+                                                </MenuDraggableRow>
                                             )}
                                         </Draggable>
                                     );

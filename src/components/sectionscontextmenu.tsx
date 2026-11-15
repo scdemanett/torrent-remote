@@ -20,7 +20,7 @@
 import type { SectionsVisibility } from "config";
 import React, { useCallback } from "react";
 import type { ContextMenuInfo } from "./contextmenu";
-import { ContextMenu, MenuItem, MenuSpacer } from "./contextmenu";
+import { ContextMenu, MenuDraggableRow, MenuItem, MenuSpacer } from "./contextmenu";
 import type { DropResult } from "@hello-pangea/dnd";
 import { DragDropContext, Draggable } from "@hello-pangea/dnd";
 import { reorderElements } from "trutil";
@@ -67,12 +67,7 @@ function SectionsContextMenu<S extends string>(props: React.PropsWithChildren<{
                                 return (
                                     <Draggable draggableId={section.section} index={index} key={section.section}>
                                         {(provided) => (
-                                            <div
-                                                ref={provided.innerRef}
-                                                onMouseEnter={props.onSectionItemMouseEnter}
-                                                {...provided.draggableProps}
-                                                className="flex flex-nowrap items-center gap-2"
-                                            >
+                                            <MenuDraggableRow provided={provided} onMouseEnter={props.onSectionItemMouseEnter}>
                                                 <MenuItem
                                                     className="flex-grow"
                                                     leftSection={section.visible ? <Icon.Check size="1rem" /> : <MenuSpacer />}
@@ -83,7 +78,7 @@ function SectionsContextMenu<S extends string>(props: React.PropsWithChildren<{
                                                 <div {...provided.dragHandleProps} className="pr-1 text-muted-foreground">
                                                     <Icon.GripVertical size="12" />
                                                 </div>
-                                            </div>
+                                            </MenuDraggableRow>
                                         )}
                                     </Draggable>
                                 );

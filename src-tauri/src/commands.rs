@@ -18,7 +18,6 @@
 use std::{fs, net::IpAddr};
 
 use base64::{engine::general_purpose::STANDARD as b64engine, Engine as _};
-use font_loader::system_fonts;
 use lava_torrent::torrent::v1::Torrent;
 use tauri::{Emitter, EventTarget, State};
 use tauri_plugin_opener::OpenerExt;
@@ -328,7 +327,12 @@ pub async fn pass_to_window(
 
 #[tauri::command]
 pub async fn list_system_fonts() -> Vec<String> {
-    system_fonts::query_all()
+    let mut families = font_kit::source::SystemSource::new()
+        .all_families()
+        .unwrap_or_default();
+    families.sort();
+    families.dedup();
+    families
 }
 
 #[tauri::command]

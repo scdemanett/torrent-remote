@@ -27,7 +27,7 @@ serde = { version = "^1.0", features = ["derive"] }
 tauri = { version = "2.12.4", features = ["tray-icon"] }
 rodio = { version = "^0.23", features = ["playback", "mp3"], default-features = false }
 maxminddb = "^0.32"
-font-loader = "0.11.0"
+font-kit = "0.14"
 tauri-plugin-clipboard-manager = "2.5.0"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
@@ -45,7 +45,7 @@ dirs = "7.0.0"
 tauri-plugin-http = { version = "2", default-features = false, features = ["charset", "cookies", "http2", "macos-system-configuration", "native-tls", "gzip", "deflate", "socks", "dangerous-settings"] }
 
 [dependencies.reqwest]
-version = "*"
+version = "0.12"
 features = ["native-tls", "socks", "gzip", "deflate"]
 
 [target.'cfg(windows)'.dependencies]

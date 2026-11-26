@@ -25,6 +25,9 @@ import type { TrackerStatsFieldsType } from "rpc/transmission";
 import { secondsToHumanReadableStr } from "trutil";
 import type { TrguiTableFeatures } from "./common";
 import { TrguiTable, useStandardSelect } from "./common";
+import type { ModalCallbacks } from "components/modals/servermodals";
+import { ContextMenu, MenuItem, useContextMenu } from "components/contextmenu";
+import * as Icon from "react-bootstrap-icons";
 
 interface TableFieldProps {
     entry: TrackerStats,
@@ -77,18 +80,42 @@ function NumberField(props: TableFieldProps) {
     return <div style={{ width: "100%", textAlign: "right" }}>{count >= 0 ? count : ""}</div>;
 }
 
-export function TrackersTable(props: { torrent: Torrent }) {
+export function TrackersTable(props: {
+    torrent: Torrent,
+    modals: React.RefObject<ModalCallbacks | null>,
+}) {
     const getRowId = useCallback((t: TrackerStats) => String(t.id), []);
 
     const [selected, selectedReducer] = useStandardSelect();
 
-    return <TrguiTable<TrackerStats> {...{
-        tablename: "trackers",
-        columns: Columns,
-        data: props.torrent.trackerStats,
-        selected,
-        getRowId,
-        selectedReducer,
-    }}
-    />;
+    const [info, setInfo, handler] = useContextMenu();
+
+    const { modals } = props;
+    const torrentId = props.torrent.id as number;
+    const editTrackers = useCallback(() => {
+        modals.current?.editTrackers(torrentId);
+    }, [modals, torrentId]);
+
+    return (
+        <div className="h-full w-full" onContextMenu={handler}>
+            <ContextMenu contextMenuInfo={info} setContextMenuInfo={setInfo}>
+                <MenuItem
+                    onClick={editTrackers}
+                    leftSection={<Icon.Wifi size="1.1rem" />}
+                >
+                    Edit trackers...
+                </MenuItem>
+            </ContextMenu>
+            <TrguiTable<TrackerStats> {...{
+                tablename: "trackers",
+                columns: Columns,
+                data: props.torrent.trackerStats,
+                selected,
+                getRowId,
+                selectedReducer,
+                onRowDoubleClick: editTrackers,
+            }}
+            />
+        </div>
+    );
 }

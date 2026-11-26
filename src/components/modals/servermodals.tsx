@@ -36,7 +36,8 @@ export interface ModalCallbacks {
     addMagnet: () => void,
     addTorrent: () => void,
     daemonSettings: () => void,
-    editTrackers: () => void,
+    /** with a torrent id, edits only that torrent; otherwise all selected */
+    editTrackers: (torrentId?: number) => void,
     editTorrent: () => void,
 }
 
@@ -79,6 +80,11 @@ const ServerModals = React.forwardRef<ModalCallbacks, ServerModalsProps>(functio
     const [showDaemonSettingsModal, openDaemonSettingsModal, closeDaemonSettingsModal] = usePausingModalState(props.runUpdates);
     const [showEditTrackersModal, openEditTrackersModal, closeEditTrackersModal] = usePausingModalState(props.runUpdates);
     const [showEditTorrentModal, openEditTorrentModal, closeEditTorrentModal] = usePausingModalState(props.runUpdates);
+    const [editTrackersTorrentId, setEditTrackersTorrentId] = useState<number>();
+    const openEditTrackers = useCallback((torrentId?: number) => {
+        setEditTrackersTorrentId(torrentId);
+        openEditTrackersModal();
+    }, [openEditTrackersModal]);
 
     useImperativeHandle(ref, () => ({
         setLabels: openLabelsModal,
@@ -87,7 +93,7 @@ const ServerModals = React.forwardRef<ModalCallbacks, ServerModalsProps>(functio
         addMagnet: openAddMagnetModal,
         addTorrent: openAddTorrentModal,
         daemonSettings: openDaemonSettingsModal,
-        editTrackers: openEditTrackersModal,
+        editTrackers: openEditTrackers,
         editTorrent: openEditTorrentModal,
     }));
 
@@ -210,7 +216,11 @@ const ServerModals = React.forwardRef<ModalCallbacks, ServerModalsProps>(functio
             close={closeAddTorrentModalAndPop}
         />
         <DaemonSettingsModal opened={showDaemonSettingsModal} close={closeDaemonSettingsModal} />
-        <EditTrackers opened={showEditTrackersModal} close={closeEditTrackersModal} />
+        <EditTrackers
+            opened={showEditTrackersModal}
+            close={closeEditTrackersModal}
+            torrentId={editTrackersTorrentId}
+        />
         <EditTorrent opened={showEditTorrentModal} close={closeEditTorrentModal} />
     </>;
 });

@@ -193,17 +193,23 @@ export function LimitedNamesList({ names, limit }: { names: string[], limit?: nu
     </>;
 }
 
-export function TorrentsNames() {
+export function TorrentsNames(props: { torrentIds?: number[] }) {
     const serverData = useServerTorrentData();
     const serverSelected = useServerSelectedTorrents();
+    const { torrentIds } = props;
 
     const allNames = useMemo<string[]>(() => {
+        if (torrentIds !== undefined) {
+            const names = serverData.torrents.filter(
+                (t) => torrentIds.includes(t.id)).map((t) => t.name);
+            return names.length > 0 ? names : ["No torrent selected"];
+        }
         if (serverData.current == null || serverSelected.size === 0) {
             return ["No torrent selected"];
         }
         return serverData.torrents.filter(
             (t) => serverSelected.has(t.id)).map((t) => t.name);
-    }, [serverData, serverSelected]);
+    }, [serverData, serverSelected, torrentIds]);
 
     return <LimitedNamesList names={allNames} />;
 }

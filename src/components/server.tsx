@@ -284,7 +284,7 @@ export function Server({ hostname, tabsRef, toolbarExtra, toggleTabStrip }: Serv
                     />
                 }
                 bottom={showDetailsPanel
-                    ? <MemoizedDetails torrentId={currentTorrent} updates={updates} />
+                    ? <MemoizedDetails torrentId={currentTorrent} updates={updates} modals={modals} />
                     : undefined}
             />
             <div className={`px-1 ${classes.statusbarContainer}`}>

@@ -34,18 +34,28 @@ interface FormValues {
     trackerList: string,
 }
 
-export function EditTrackers(props: ModalState) {
+interface EditTrackersProps extends ModalState {
+    /** edit only this torrent instead of every selected one */
+    torrentId?: number,
+}
+
+export function EditTrackers(props: EditTrackersProps) {
     const rpcVersion = useServerRpcVersion();
     const config = useContext(ConfigContext);
     const serverData = useServerTorrentData();
     const selected = useServerSelectedTorrents();
 
     const torrentId = useMemo(() => {
+        if (props.torrentId !== undefined) return props.torrentId;
         if (serverData.current === undefined || !selected.has(serverData.current)) {
             return [...selected][0];
         }
         return serverData.current;
-    }, [selected, serverData]);
+    }, [props.torrentId, selected, serverData]);
+
+    const targetIds = useMemo(
+        () => props.torrentId !== undefined ? [props.torrentId] : [...selected],
+        [props.torrentId, selected]);
 
     const { data: torrent, isPending } = useTorrentDetails(
         torrentId ?? -1, torrentId !== undefined && props.opened, false, true);
@@ -89,7 +99,7 @@ export function EditTrackers(props: ModalState) {
         }
         mutate(
             {
-                torrentIds: [...selected],
+                torrentIds: targetIds,
                 fields: {
                     trackerList: dedupedTrackers.join("\n"),
                     trackerAdd: toAdd,
@@ -107,7 +117,7 @@ export function EditTrackers(props: ModalState) {
             },
         );
         props.close();
-    }, [torrentId, torrent, rpcVersion, mutate, selected, form, props]);
+    }, [torrentId, torrent, rpcVersion, mutate, targetIds, form, props]);
 
     const addDefaultTrackers = useCallback(() => {
         let list = form.getValues("trackerList");
@@ -129,7 +139,7 @@ export function EditTrackers(props: ModalState) {
                 <LoadingOverlay visible={isPending} />
                 <div className="grid grid-cols-12 items-center gap-2">
                     <div className="col-span-12">
-                        <TorrentsNames />
+                        <TorrentsNames torrentIds={props.torrentId !== undefined ? targetIds : undefined} />
                     </div>
                     <div className="col-span-8">
                         Tracker list, one per line, empty line between tiers

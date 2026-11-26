@@ -37,10 +37,12 @@ import { MemoSectionsContextMenu, getSectionsMap } from "./sectionscontextmenu";
 import { useContextMenu } from "./contextmenu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { LoadingOverlay } from "./ui/loader";
+import type { ModalCallbacks } from "./modals/servermodals";
 
 interface DetailsProps {
     torrentId?: number,
     updates: boolean,
+    modals: React.RefObject<ModalCallbacks | null>,
 }
 
 function DownloadBar(props: { torrent: Torrent }) {
@@ -406,7 +408,10 @@ function ServerStats() {
     );
 }
 
-const DetailsPanels = React.memo(function DetailsPanels({ torrent }: { torrent: Torrent | undefined }) {
+const DetailsPanels = React.memo(function DetailsPanels({ torrent, modals }: {
+    torrent: Torrent | undefined,
+    modals: React.RefObject<ModalCallbacks | null>,
+}) {
     return (<>
         <TabsContent value="General" className="h-full">
             {torrent !== undefined
@@ -430,7 +435,7 @@ const DetailsPanels = React.memo(function DetailsPanels({ torrent }: { torrent: 
         </TabsContent>
         <TabsContent value="Trackers" className="h-full">
             {torrent !== undefined
-                ? <TrackersTable torrent={torrent} />
+                ? <TrackersTable torrent={torrent} modals={modals} />
                 : <></>}
         </TabsContent>
         <TabsContent value="Server statistics" className="h-full">
@@ -563,7 +568,7 @@ function Details(props: DetailsProps) {
                     loaderSize="3rem"
                     className="bg-background/35"
                 />
-                <DetailsPanels torrent={torrent} />
+                <DetailsPanels torrent={torrent} modals={props.modals} />
             </div>
         </Tabs>
     );
